@@ -18,7 +18,9 @@ export default function DailyView({ sessionHistory, darkMode }: DailyViewProps) 
   // Get today's sessions
   const today = new Date().toDateString();
   const todaySessions = sessionHistory.filter(s => s.date === today);
-  const completedSessions = todaySessions.filter(s => s.type === 'work').length;
+  const workSessions = todaySessions.filter(s => s.type === 'work');
+  const breakSessions = todaySessions.filter(s => s.type === 'break');
+  const completedSessions = Math.min(workSessions.length, breakSessions.length);
 
   return (
     <div className="mb-6">
@@ -39,13 +41,13 @@ export default function DailyView({ sessionHistory, darkMode }: DailyViewProps) 
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-green-500">
-            {todaySessions.filter(s => s.type === 'work').reduce((sum, s) => sum + s.duration, 0)}
+            {workSessions.reduce((sum, s) => sum + s.duration, 0)}
           </div>
           <div className="text-xs opacity-75">Work Min</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-blue-500">
-            {todaySessions.filter(s => s.type === 'break').reduce((sum, s) => sum + s.duration, 0)}
+            {breakSessions.reduce((sum, s) => sum + s.duration, 0)}
           </div>
           <div className="text-xs opacity-75">Break Min</div>
         </div>

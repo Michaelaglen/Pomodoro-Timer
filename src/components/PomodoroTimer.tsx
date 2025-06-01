@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Settings, Moon, Sun, Coffee, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import StatsView from './StatsView';
-import DailyView from './DailyView';
 
 interface Session {
   type: 'work' | 'break';
@@ -25,7 +24,7 @@ export default function PomodoroTimer() {
   const [workDuration, setWorkDuration] = useState(25);
   const [breakDuration, setBreakDuration] = useState(5);
   const [autoBreak, setAutoBreak] = useState(true);
-  const [autoStart, setAutoStart] = useState(false);
+  const [autoStart, setAutoStart] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
@@ -54,7 +53,7 @@ export default function PomodoroTimer() {
         setWorkDuration(settings.workDuration || 25);
         setBreakDuration(settings.breakDuration || 5);
         setAutoBreak(settings.autoBreak ?? true);
-        setAutoStart(settings.autoStart ?? false);
+        setAutoStart(settings.autoStart ?? true);
         setDarkMode(settings.darkMode ?? false);
         console.log('Loaded settings:', settings);
       } catch (error) {
@@ -82,37 +81,12 @@ export default function PomodoroTimer() {
     };
     localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
     console.log('Settings saved:', settings);
+    setShowSettings(false);
     toast({
       title: "Settings Saved",
-      description: "Your preferences have been saved successfully.",
+      duration: 2000,
     });
   };
-
-  // Clean up old sessions (older than 30 days)
-  useEffect(() => {
-    const cleanupOldSessions = () => {
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
-      setSessionHistory(prev => {
-        const filteredSessions = prev.filter(session => {
-          const sessionDate = new Date(session.fullTimestamp);
-          return sessionDate > thirtyDaysAgo;
-        });
-        
-        if (filteredSessions.length !== prev.length) {
-          console.log(`Cleaned up ${prev.length - filteredSessions.length} old sessions`);
-          return filteredSessions;
-        }
-        return prev;
-      });
-    };
-
-    cleanupOldSessions();
-    const cleanupInterval = setInterval(cleanupOldSessions, 24 * 60 * 60 * 1000);
-
-    return () => clearInterval(cleanupInterval);
-  }, []);
 
   // Reset timer when work/break duration changes
   useEffect(() => {
@@ -197,6 +171,7 @@ export default function PomodoroTimer() {
                 toast({
                   title: isBreak ? "Break Complete!" : "Work Session Complete!",
                   description: `${newSession.duration} minutes ${isBreak ? 'break' : 'work'} session finished.`,
+                  duration: 3000,
                 });
 
                 if (isBreak) {
@@ -268,28 +243,51 @@ export default function PomodoroTimer() {
   const currentDuration = isBreak ? breakDuration : workDuration;
   const progress = ((currentDuration * 60 - (minutes * 60 + seconds)) / (currentDuration * 60)) * 100;
 
-  // Get today's sessions
+  // Get today's sessions and calculate completed pomodoro cycles
   const today = new Date().toDateString();
   const todaySessions = sessionHistory.filter(s => s.date === today);
-  const completedSessions = todaySessions.filter(s => s.type === 'work').length;
-
-  const themeClasses = darkMode 
-    ? 'bg-gray-900 text-white' 
-    : 'bg-gradient-to-br from-red-50 to-orange-50 text-gray-800';
-
-  const cardClasses = darkMode 
-    ? 'bg-gray-800 border-gray-700' 
-    : 'bg-white border-gray-200';
+  const workSessions = todaySessions.filter(s => s.type === 'work');
+  const breakSessions = todaySessions.filter(s => s.type === 'break');
+  const completedSessions = Math.min(workSessions.length, breakSessions.length);
+  const totalWorkMinutes = workSessions.reduce((sum, s) => sum + s.duration, 0);
 
   const exportData = () => {
+    // Group sessions by date
+    const sessionsByDate = sessionHistory.reduce((acc, session) => {
+      if (!acc[session.date]) {
+        acc[session.date] = { work: [], break: [] };
+      }
+      acc[session.date][session.type].push(session);
+      return acc;
+    }, {} as Record<string, { work: Session[], break: Session[] }>);
+
     // Create CSV content
-    const csvHeaders = 'Date,Time,Type,Duration (minutes)\n';
-    const csvContent = sessionHistory
-      .map(session => `${session.date},${session.timestamp},${session.type},${session.duration}`)
-      .join('\n');
-    
-    const csvData = csvHeaders + csvContent;
-    const dataBlob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const csvHeaders = 'Day,Date,Sessions,Work Min,Break Min\n';
+    const csvRows = Object.entries(sessionsByDate).map(([date, sessions]) => {
+      const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+      const sessionCount = Math.min(sessions.work.length, sessions.break.length);
+      const workMin = sessions.work.reduce((sum, s) => sum + s.duration, 0);
+      const breakMin = sessions.break.reduce((sum, s) => sum + s.duration, 0);
+      return `${dayName},${date},${sessionCount},${workMin},${breakMin}`;
+    });
+
+    // Add weekly summary
+    const totalSessionCount = Object.values(sessionsByDate).reduce((sum, sessions) => 
+      sum + Math.min(sessions.work.length, sessions.break.length), 0
+    );
+    const totalWorkMin = Object.values(sessionsByDate).reduce((sum, sessions) => 
+      sum + sessions.work.reduce((s, session) => s + session.duration, 0), 0
+    );
+    const totalBreakMin = Object.values(sessionsByDate).reduce((sum, sessions) => 
+      sum + sessions.break.reduce((s, session) => s + session.duration, 0), 0
+    );
+
+    csvRows.push(''); // Empty line
+    csvRows.push('Weekly Summary,Total,Sessions,Work Min,Break Min');
+    csvRows.push(`Week Total,,${totalSessionCount},${totalWorkMin},${totalBreakMin}`);
+
+    const csvContent = csvHeaders + csvRows.join('\n');
+    const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
@@ -302,6 +300,7 @@ export default function PomodoroTimer() {
     toast({
       title: "Data Exported",
       description: "Your session data has been downloaded as a CSV file.",
+      duration: 3000,
     });
   };
 
@@ -315,9 +314,18 @@ export default function PomodoroTimer() {
         title: "Data Cleared",
         description: "All session data has been permanently deleted.",
         variant: "destructive",
+        duration: 3000,
       });
     }
   };
+
+  const themeClasses = darkMode 
+    ? 'bg-gray-900 text-white' 
+    : 'bg-gradient-to-br from-red-50 to-orange-50 text-gray-800';
+
+  const cardClasses = darkMode 
+    ? 'bg-gray-800 border-gray-700' 
+    : 'bg-white border-gray-200';
 
   return (
     <div className={`flex items-center justify-center min-h-screen p-4 transition-all duration-300 ${themeClasses}`}>
@@ -345,16 +353,6 @@ export default function PomodoroTimer() {
               }`}
             >
               Stats
-            </button>
-            <button
-              onClick={() => setCurrentView('daily')}
-              className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                currentView === 'daily' 
-                  ? 'bg-red-500 text-white' 
-                  : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              Daily
             </button>
           </div>
           
@@ -523,12 +521,15 @@ export default function PomodoroTimer() {
               </button>
             </div>
 
-            <div className="text-center">
-              <p className="opacity-75 text-sm mb-2">Today's Sessions</p>
-              <p className="text-2xl font-bold">{completedSessions}</p>
-              <p className="text-xs opacity-60 mt-1">
-                Total: {todaySessions.filter(s => s.type === 'work').reduce((sum, s) => sum + s.duration, 0)} minutes
-              </p>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="opacity-75 text-sm mb-1">Today's Sessions</p>
+                <p className="text-2xl font-bold">{completedSessions}</p>
+              </div>
+              <div>
+                <p className="opacity-75 text-sm mb-1">Total Minutes</p>
+                <p className="text-2xl font-bold">{totalWorkMinutes}</p>
+              </div>
             </div>
           </>
         )}
@@ -538,31 +539,9 @@ export default function PomodoroTimer() {
           <StatsView 
             sessionHistory={sessionHistory} 
             darkMode={darkMode}
+            onExportData={exportData}
             onClearData={clearAllData}
           />
-        )}
-
-        {/* Daily View */}
-        {currentView === 'daily' && (
-          <DailyView sessionHistory={sessionHistory} darkMode={darkMode} />
-        )}
-
-        {/* Export and Clear buttons at bottom */}
-        {(currentView === 'stats' || currentView === 'daily') && (
-          <div className="flex space-x-2 mt-6 pt-4 border-t border-opacity-20">
-            <button
-              onClick={exportData}
-              className="flex items-center space-x-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex-1"
-            >
-              <span>Export CSV</span>
-            </button>
-            <button
-              onClick={clearAllData}
-              className="flex items-center space-x-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm flex-1"
-            >
-              <span>Clear Data</span>
-            </button>
-          </div>
         )}
 
         {/* Buy Me a Coffee Button */}
