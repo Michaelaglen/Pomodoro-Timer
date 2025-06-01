@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Settings, Moon, Sun, Download, Trash2, Calendar, Coffee } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings, Moon, Sun, Coffee, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import StatsView from './StatsView';
 import DailyView from './DailyView';
@@ -72,7 +72,7 @@ export default function PomodoroTimer() {
   }, [sessionHistory]);
 
   // Save settings to localStorage
-  useEffect(() => {
+  const saveSettings = () => {
     const settings = {
       workDuration,
       breakDuration,
@@ -81,7 +81,12 @@ export default function PomodoroTimer() {
       darkMode
     };
     localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
-  }, [workDuration, breakDuration, autoBreak, autoStart, darkMode]);
+    console.log('Settings saved:', settings);
+    toast({
+      title: "Settings Saved",
+      description: "Your preferences have been saved successfully.",
+    });
+  };
 
   // Clean up old sessions (older than 30 days)
   useEffect(() => {
@@ -104,7 +109,7 @@ export default function PomodoroTimer() {
     };
 
     cleanupOldSessions();
-    const cleanupInterval = setInterval(cleanupOldSessions, 24 * 60 * 60 * 1000); // Daily cleanup
+    const cleanupInterval = setInterval(cleanupOldSessions, 24 * 60 * 60 * 1000);
 
     return () => clearInterval(cleanupInterval);
   }, []);
@@ -129,21 +134,26 @@ export default function PomodoroTimer() {
         ctx.resume();
       }
       
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      
-      oscillator.frequency.setValueAtTime(800, ctx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.4);
-      
-      gainNode.gain.setValueAtTime(0, ctx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-      
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.4);
+      // Create a sequence of three beeps
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          const oscillator = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          
+          oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.3);
+          
+          gainNode.gain.setValueAtTime(0, ctx.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          
+          oscillator.start(ctx.currentTime);
+          oscillator.stop(ctx.currentTime + 0.3);
+        }, i * 400);
+      }
       
       console.log('Notification sound played');
     } catch (error) {
@@ -195,7 +205,7 @@ export default function PomodoroTimer() {
                   
                   if (autoStart) {
                     console.log('Auto-starting work session');
-                    setIsActive(true);
+                    setTimeout(() => setIsActive(true), 1000);
                   }
                 } else {
                   // Work session finished
@@ -205,7 +215,7 @@ export default function PomodoroTimer() {
                     
                     if (autoStart) {
                       console.log('Auto-starting break session');
-                      setIsActive(true);
+                      setTimeout(() => setIsActive(true), 1000);
                     }
                   } else {
                     setMinutes(workDuration);
@@ -252,38 +262,6 @@ export default function PomodoroTimer() {
 
   const formatTime = (mins: number, secs: number) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const exportData = () => {
-    const dataStr = JSON.stringify(sessionHistory, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `pomodoro-sessions-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Data Exported",
-      description: "Your session data has been downloaded as a JSON file.",
-    });
-  };
-
-  const clearAllData = () => {
-    if (confirm('Are you sure you want to clear all session data? This cannot be undone.')) {
-      setSessionHistory([]);
-      localStorage.removeItem('pomodoroHistory');
-      console.log('All data cleared');
-      
-      toast({
-        title: "Data Cleared",
-        description: "All session data has been permanently deleted.",
-        variant: "destructive",
-      });
-    }
   };
 
   const currentDuration = isBreak ? breakDuration : workDuration;
@@ -415,32 +393,24 @@ export default function PomodoroTimer() {
                 />
               </div>
               
-              <div className="flex space-x-2 pt-2">
+              <div className="flex space-x-2 pt-4">
                 <button
-                  onClick={exportData}
-                  className="flex items-center space-x-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                  onClick={saveSettings}
+                  className="flex items-center space-x-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex-1"
                 >
-                  <Download size={16} />
-                  <span>Export</span>
+                  <Save size={16} />
+                  <span>Save</span>
                 </button>
                 <button
-                  onClick={clearAllData}
-                  className="flex items-center space-x-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                  onClick={() => setShowSettings(false)}
+                  className={`px-3 py-2 rounded-lg transition-colors text-sm flex-1 ${
+                    darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-500 hover:bg-gray-600'
+                  } text-white`}
                 >
-                  <Trash2 size={16} />
-                  <span>Clear</span>
+                  Close
                 </button>
               </div>
             </div>
-            
-            <button
-              onClick={() => setShowSettings(false)}
-              className={`mt-4 px-4 py-2 rounded-lg transition-colors ${
-                darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-500 hover:bg-gray-600'
-              } text-white`}
-            >
-              Close
-            </button>
           </div>
         )}
 
@@ -526,7 +496,23 @@ export default function PomodoroTimer() {
 
         {/* Stats View */}
         {currentView === 'stats' && (
-          <StatsView sessionHistory={sessionHistory} darkMode={darkMode} />
+          <StatsView 
+            sessionHistory={sessionHistory} 
+            darkMode={darkMode}
+            onClearData={() => {
+              if (confirm('Are you sure you want to clear all session data? This cannot be undone.')) {
+                setSessionHistory([]);
+                localStorage.removeItem('pomodoroHistory');
+                console.log('All data cleared');
+                
+                toast({
+                  title: "Data Cleared",
+                  description: "All session data has been permanently deleted.",
+                  variant: "destructive",
+                });
+              }
+            }}
+          />
         )}
 
         {/* Daily View */}
