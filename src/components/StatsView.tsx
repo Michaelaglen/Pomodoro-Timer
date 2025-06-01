@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Session {
   type: 'work' | 'break';
@@ -18,6 +19,9 @@ interface StatsViewProps {
 }
 
 export default function StatsView({ sessionHistory, darkMode, onExportData, onClearData }: StatsViewProps) {
+  // Get today's date
+  const today = new Date().toDateString();
+
   // Group sessions by date
   const sessionsByDate = React.useMemo(() => {
     const grouped = sessionHistory.reduce((acc, session) => {
@@ -37,14 +41,19 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
     }));
   }, [sessionHistory]);
 
-  // Calculate totals
-  const totals = React.useMemo(() => {
-    return sessionsByDate.reduce((acc, day) => ({
-      workMinutes: acc.workMinutes + day.workMinutes,
-      breakMinutes: acc.breakMinutes + day.breakMinutes,
-      sessions: acc.sessions + day.completedSessions
-    }), { workMinutes: 0, breakMinutes: 0, sessions: 0 });
-  }, [sessionsByDate]);
+  // Get today's stats
+  const todayStats = sessionsByDate.find(day => day.date === today) || {
+    workMinutes: 0,
+    breakMinutes: 0,
+    completedSessions: 0
+  };
+
+  // Get weekly stats (last 7 days)
+  const weeklyStats = sessionsByDate.slice(-7).reduce((acc, day) => ({
+    workMinutes: acc.workMinutes + day.workMinutes,
+    breakMinutes: acc.breakMinutes + day.breakMinutes,
+    completedSessions: acc.completedSessions + day.completedSessions
+  }), { workMinutes: 0, breakMinutes: 0, completedSessions: 0 });
 
   // Calculate streak
   const currentStreak = React.useMemo(() => {
@@ -67,116 +76,128 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
   }, [sessionsByDate]);
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-muted-foreground">Total Sessions</h3>
-          <p className="text-2xl font-bold">{totals.sessions}</p>
-        </div>
-        <div className="bg-card p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-muted-foreground">Work Minutes</h3>
-          <p className="text-2xl font-bold">{totals.workMinutes}</p>
-        </div>
-        <div className="bg-card p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-muted-foreground">Break Minutes</h3>
-          <p className="text-2xl font-bold">{totals.breakMinutes}</p>
-        </div>
-        <div className="bg-card p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-muted-foreground">Current Streak</h3>
-          <p className="text-2xl font-bold">{currentStreak} days</p>
-        </div>
-      </div>
+    <div className="grid gap-6 md:grid-cols-2">
+      {/* Today's Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Today</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Sessions</span>
+                  <span className="text-2xl font-bold">{todayStats.completedSessions}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>One session = Work time + Break time</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Work Minutes</span>
+            <span className="text-2xl font-bold">{todayStats.workMinutes}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Break Minutes</span>
+            <span className="text-2xl font-bold">{todayStats.breakMinutes}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Total Minutes</span>
+            <span className="text-2xl font-bold">{todayStats.workMinutes + todayStats.breakMinutes}</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Chart */}
-      <div className="bg-card p-4 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4">Daily Activity</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={sessionsByDate.slice(-7).reverse()}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-              <XAxis 
-                dataKey="date"
-                fontSize={12}
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}
-              />
-              <YAxis 
-                fontSize={12}
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: darkMode ? '#374151' : '#ffffff',
-                  border: darkMode ? '1px solid #4b5563' : '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                }}
-                formatter={(value: number, name: string) => [
-                  `${value} minutes`,
-                  name === 'workMinutes' ? 'Work Time' : 'Break Time'
-                ]}
-                labelFormatter={(label) => new Date(label).toLocaleDateString()}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="workMinutes" 
-                name="Work"
-                stroke="#ef4444" 
-                strokeWidth={2}
-                dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="breakMinutes" 
-                name="Break"
-                stroke="#22c55e" 
-                strokeWidth={2}
-                dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      {/* Weekly Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">This Week</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Total Sessions</span>
+            <span className="text-2xl font-bold">{weeklyStats.completedSessions}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Work Minutes</span>
+            <span className="text-2xl font-bold">{weeklyStats.workMinutes}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Break Minutes</span>
+            <span className="text-2xl font-bold">{weeklyStats.breakMinutes}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Current Streak</span>
+            <span className="text-2xl font-bold">{currentStreak} days</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Session History Table */}
-      <div className="bg-card rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Sessions</TableHead>
-              <TableHead>Work Minutes</TableHead>
-              <TableHead>Break Minutes</TableHead>
-              <TableHead>Total Minutes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sessionsByDate.map((day) => (
-              <TableRow key={day.date}>
-                <TableCell>{new Date(day.date).toLocaleDateString()}</TableCell>
-                <TableCell>{day.completedSessions}</TableCell>
-                <TableCell>{day.workMinutes}</TableCell>
-                <TableCell>{day.breakMinutes}</TableCell>
-                <TableCell>{day.workMinutes + day.breakMinutes}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Activity Chart */}
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={sessionsByDate.slice(-7).reverse()}>
+                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                <XAxis 
+                  dataKey="date"
+                  tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  fontSize={12}
+                />
+                <YAxis 
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  fontSize={12}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                  }}
+                  formatter={(value: number) => [`${value} min`]}
+                  labelFormatter={(date) => new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="workMinutes" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  dot={{ fill: '#3b82f6', r: 4 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="breakMinutes" 
+                  stroke="#10b981" 
+                  strokeWidth={2}
+                  dot={{ fill: '#10b981', r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Action Buttons */}
-      <div className="flex space-x-3">
+      <div className="md:col-span-2 flex gap-4">
         <button
           onClick={onExportData}
-          className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md"
+          className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md transition-colors"
         >
           Export Data
         </button>
         <button
           onClick={onClearData}
-          className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 rounded-md"
+          className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 rounded-md transition-colors"
         >
-          Clear Data
+          Reset Data
         </button>
       </div>
     </div>
