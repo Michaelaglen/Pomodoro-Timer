@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,12 +30,10 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
   // Load data from localStorage
   useEffect(() => {
     const savedHistory = localStorage.getItem('pomodoroHistory');
-    
     if (savedHistory) {
       try {
         const parsedHistory = JSON.parse(savedHistory);
         setSessionHistory(parsedHistory);
-        console.log('Loaded session history:', parsedHistory.length, 'sessions');
       } catch (error) {
         console.error('Error loading session history:', error);
       }
@@ -47,11 +44,10 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
   useEffect(() => {
     if (sessionHistory.length > 0) {
       localStorage.setItem('pomodoroHistory', JSON.stringify(sessionHistory));
-      console.log('Saved session history:', sessionHistory.length, 'sessions');
     }
   }, [sessionHistory]);
 
-  // Reset timer when work/break duration changes
+  // Reset timer when work/break duration changes or when switching between work/break
   useEffect(() => {
     if (!isActive) {
       setMinutes(isBreak ? breakDuration : workDuration);
@@ -71,7 +67,7 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
         ctx.resume();
       }
       
-      // Create a sequence of three calming dings
+      // Create three calming dings
       for (let i = 0; i < 3; i++) {
         setTimeout(() => {
           const oscillator = ctx.createOscillator();
@@ -91,81 +87,72 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
           oscillator.stop(ctx.currentTime + 0.3);
         }, i * 400);
       }
-      
-      console.log('Notification sound played');
     } catch (error) {
       console.error('Error playing notification sound:', error);
     }
   };
 
+  const completeSession = () => {
+    const now = new Date();
+    const newSession: Session = {
+      type: isBreak ? 'break' : 'work',
+      duration: isBreak ? breakDuration : workDuration,
+      timestamp: now.toLocaleTimeString(),
+      date: now.toDateString(),
+      fullTimestamp: now.toISOString()
+    };
+
+    setSessionHistory(prev => [...prev, newSession]);
+    playNotificationSound();
+
+    toast({
+      title: isBreak ? "Break Complete!" : "Work Session Complete!",
+      description: `${newSession.duration} minutes ${isBreak ? 'break' : 'work'} session finished.`,
+      duration: 2000,
+    });
+
+    if (isBreak) {
+      setIsBreak(false);
+      setMinutes(workDuration);
+      setSeconds(0);
+      if (autoStart) {
+        setTimeout(() => setIsActive(true), 1000);
+      }
+    } else {
+      if (autoBreak) {
+        setIsBreak(true);
+        setMinutes(breakDuration);
+        setSeconds(0);
+        if (autoStart) {
+          setTimeout(() => setIsActive(true), 1000);
+        }
+      } else {
+        setIsBreak(false);
+        setMinutes(workDuration);
+        setSeconds(0);
+      }
+    }
+  };
+
   // Main timer logic
   useEffect(() => {
-    if (isActive && (minutes > 0 || seconds > 0)) {
+    if (isActive) {
       intervalRef.current = setInterval(() => {
-        setSeconds(prevSeconds => {
-          if (prevSeconds === 0) {
-            setMinutes(prevMinutes => {
-              if (prevMinutes === 0) {
-                // Timer finished
-                setIsActive(false);
-                playNotificationSound();
-                
-                const now = new Date();
-                const newSession: Session = {
-                  type: isBreak ? 'break' : 'work',
-                  duration: isBreak ? breakDuration : workDuration,
-                  timestamp: now.toLocaleTimeString(),
-                  date: now.toDateString(),
-                  fullTimestamp: now.toISOString()
-                };
-
-                setSessionHistory(prev => [...prev, newSession]);
-                console.log('Session completed:', newSession);
-
-                toast({
-                  title: isBreak ? "Break Complete!" : "Work Session Complete!",
-                  description: `${newSession.duration} minutes ${isBreak ? 'break' : 'work'} session finished.`,
-                  duration: 2000,
-                });
-
-                if (isBreak) {
-                  setIsBreak(false);
-                  setMinutes(workDuration);
-                  
-                  if (autoStart) {
-                    console.log('Auto-starting work session');
-                    setTimeout(() => setIsActive(true), 1000);
-                  }
-                } else {
-                  if (autoBreak) {
-                    setIsBreak(true);
-                    setMinutes(breakDuration);
-                    
-                    if (autoStart) {
-                      console.log('Auto-starting break session');
-                      setTimeout(() => setIsActive(true), 1000);
-                    }
-                  } else {
-                    setMinutes(workDuration);
-                  }
-                }
-                
-                return 0;
-              } else {
-                return prevMinutes - 1;
-              }
-            });
-            return 59;
+        if (seconds === 0) {
+          if (minutes === 0) {
+            setIsActive(false);
+            clearInterval(intervalRef.current!);
+            completeSession();
           } else {
-            return prevSeconds - 1;
+            setMinutes(m => m - 1);
+            setSeconds(59);
           }
-        });
+        } else {
+          setSeconds(s => s - 1);
+        }
       }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
     }
 
     return () => {
@@ -173,11 +160,10 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
         clearInterval(intervalRef.current);
       }
     };
-  }, [isActive, minutes, seconds, isBreak, workDuration, breakDuration, autoBreak, autoStart, toast]);
+  }, [isActive, minutes, seconds]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);
-    console.log('Timer toggled:', !isActive);
   };
 
   const resetTimer = () => {
@@ -185,14 +171,12 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
     setIsBreak(false);
     setMinutes(workDuration);
     setSeconds(0);
-    console.log('Timer reset');
   };
 
   const clearAllData = () => {
     if (confirm('Are you sure you want to clear all session data? This cannot be undone.')) {
       setSessionHistory([]);
       localStorage.removeItem('pomodoroHistory');
-      console.log('All data cleared');
       
       toast({
         title: "Data Cleared",

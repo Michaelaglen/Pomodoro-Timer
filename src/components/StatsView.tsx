@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import DailyView from './DailyView';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Session {
   type: 'work' | 'break';
@@ -19,86 +18,88 @@ interface StatsViewProps {
 }
 
 export default function StatsView({ sessionHistory, darkMode, onExportData, onClearData }: StatsViewProps) {
-  // Prepare chart data for last 7 days
-  const last7Days = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toDateString();
-    const daySessions = sessionHistory.filter(s => s.date === dateStr);
-    const workTime = daySessions.filter(s => s.type === 'work').reduce((sum, s) => sum + s.duration, 0);
+  // Group sessions by date
+  const sessionsByDate = React.useMemo(() => {
+    const grouped = sessionHistory.reduce((acc, session) => {
+      if (!acc[session.date]) {
+        acc[session.date] = { work: [], break: [] };
+      }
+      acc[session.date][session.type].push(session);
+      return acc;
+    }, {} as Record<string, { work: Session[], break: Session[] }>);
+
+    return Object.entries(grouped).map(([date, sessions]) => ({
+      date,
+      workMinutes: sessions.work.reduce((sum, s) => sum + s.duration, 0),
+      breakMinutes: sessions.break.reduce((sum, s) => sum + s.duration, 0),
+      completedSessions: Math.min(sessions.work.length, sessions.break.length),
+      sessions
+    }));
+  }, [sessionHistory]);
+
+  // Calculate totals
+  const totals = React.useMemo(() => {
+    return sessionsByDate.reduce((acc, day) => ({
+      workMinutes: acc.workMinutes + day.workMinutes,
+      breakMinutes: acc.breakMinutes + day.breakMinutes,
+      sessions: acc.sessions + day.completedSessions
+    }), { workMinutes: 0, breakMinutes: 0, sessions: 0 });
+  }, [sessionsByDate]);
+
+  // Calculate streak
+  const currentStreak = React.useMemo(() => {
+    let streak = 0;
+    const today = new Date().toDateString();
     
-    last7Days.push({
-      date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-      work: workTime,
-      shortDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    });
-  }
-
-  const totalWorkTime = sessionHistory
-    .filter(s => s.type === 'work')
-    .reduce((sum, s) => sum + s.duration, 0);
-
-  const totalSessions = sessionHistory.filter(s => s.type === 'work').length;
-  const totalBreakSessions = sessionHistory.filter(s => s.type === 'break').length;
-  const completedCycles = Math.min(totalSessions, totalBreakSessions);
-  const averageSessionLength = totalSessions > 0 ? Math.round(totalWorkTime / totalSessions) : 0;
-
-  // Calculate streak (consecutive days with at least one completed pomodoro cycle)
-  let currentStreak = 0;
-  const today = new Date();
-  for (let i = 0; i < 30; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toDateString();
-    const dayWorkSessions = sessionHistory.filter(s => s.date === dateStr && s.type === 'work').length;
-    const dayBreakSessions = sessionHistory.filter(s => s.date === dateStr && s.type === 'break').length;
-    const hasCompletedCycle = Math.min(dayWorkSessions, dayBreakSessions) > 0;
-    
-    if (hasCompletedCycle) {
-      currentStreak++;
-    } else {
-      break;
+    for (let i = 0; i < sessionsByDate.length; i++) {
+      const date = new Date(sessionsByDate[i].date);
+      const expectedDate = new Date();
+      expectedDate.setDate(expectedDate.getDate() - i);
+      
+      if (sessionsByDate[i].completedSessions > 0 && 
+          date.toDateString() === expectedDate.toDateString()) {
+        streak++;
+      } else {
+        break;
+      }
     }
-  }
+    return streak;
+  }, [sessionsByDate]);
 
   return (
-    <div className="mb-6">
-      {/* Today's Flow Section */}
-      <DailyView sessionHistory={sessionHistory} darkMode={darkMode} />
-      
-      {/* Weekly Progress Section */}
-      <div className="mt-6">
-        <h2 className="text-2xl font-bold mb-4">Weekly Progress</h2>
-        
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-red-500">{totalWorkTime}</div>
-            <div className="text-xs opacity-75">Total Minutes</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-500">{completedCycles}</div>
-            <div className="text-xs opacity-75">Completed Cycles</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-500">{averageSessionLength}</div>
-            <div className="text-xs opacity-75">Avg Session</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-500">{currentStreak}</div>
-            <div className="text-xs opacity-75">Day Streak</div>
-          </div>
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-card p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-muted-foreground">Total Sessions</h3>
+          <p className="text-2xl font-bold">{totals.sessions}</p>
         </div>
+        <div className="bg-card p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-muted-foreground">Work Minutes</h3>
+          <p className="text-2xl font-bold">{totals.workMinutes}</p>
+        </div>
+        <div className="bg-card p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-muted-foreground">Break Minutes</h3>
+          <p className="text-2xl font-bold">{totals.breakMinutes}</p>
+        </div>
+        <div className="bg-card p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-muted-foreground">Current Streak</h3>
+          <p className="text-2xl font-bold">{currentStreak} days</p>
+        </div>
+      </div>
 
+      {/* Chart */}
+      <div className="bg-card p-4 rounded-lg">
+        <h3 className="text-lg font-semibold mb-4">Daily Activity</h3>
         <div className="h-64">
-          <h3 className="text-lg font-semibold mb-3">Work Time (Minutes)</h3>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={last7Days}>
+            <LineChart data={sessionsByDate.slice(-7).reverse()}>
               <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
               <XAxis 
-                dataKey="shortDate" 
+                dataKey="date"
                 fontSize={12}
                 stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}
               />
               <YAxis 
                 fontSize={12}
@@ -109,38 +110,74 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
                   backgroundColor: darkMode ? '#374151' : '#ffffff',
                   border: darkMode ? '1px solid #4b5563' : '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  color: darkMode ? '#ffffff' : '#000000'
                 }}
-                labelFormatter={(label) => `Date: ${label}`}
-                formatter={(value: number) => [`${value} minutes`, 'Work Time']}
+                formatter={(value: number, name: string) => [
+                  `${value} minutes`,
+                  name === 'workMinutes' ? 'Work Time' : 'Break Time'
+                ]}
+                labelFormatter={(label) => new Date(label).toLocaleDateString()}
               />
               <Line 
                 type="monotone" 
-                dataKey="work" 
+                dataKey="workMinutes" 
+                name="Work"
                 stroke="#ef4444" 
-                strokeWidth={3}
+                strokeWidth={2}
                 dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="breakMinutes" 
+                name="Break"
+                stroke="#22c55e" 
+                strokeWidth={2}
+                dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
+      </div>
 
-        {/* Export and Clear buttons */}
-        <div className="flex space-x-3 mt-6">
-          <button
-            onClick={onExportData}
-            className="flex items-center space-x-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex-1"
-          >
-            <span>Export CSV</span>
-          </button>
-          <button
-            onClick={onClearData}
-            className="flex items-center space-x-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm flex-1"
-          >
-            <span>Reset Data</span>
-          </button>
-        </div>
+      {/* Session History Table */}
+      <div className="bg-card rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Sessions</TableHead>
+              <TableHead>Work Minutes</TableHead>
+              <TableHead>Break Minutes</TableHead>
+              <TableHead>Total Minutes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sessionsByDate.map((day) => (
+              <TableRow key={day.date}>
+                <TableCell>{new Date(day.date).toLocaleDateString()}</TableCell>
+                <TableCell>{day.completedSessions}</TableCell>
+                <TableCell>{day.workMinutes}</TableCell>
+                <TableCell>{day.breakMinutes}</TableCell>
+                <TableCell>{day.workMinutes + day.breakMinutes}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex space-x-3">
+        <button
+          onClick={onExportData}
+          className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md"
+        >
+          Export Data
+        </button>
+        <button
+          onClick={onClearData}
+          className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 rounded-md"
+        >
+          Clear Data
+        </button>
       </div>
     </div>
   );
