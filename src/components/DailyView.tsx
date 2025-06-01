@@ -52,29 +52,25 @@ export default function DailyView({ sessionHistory, darkMode }: DailyViewProps) 
       </div>
 
       <div className="space-y-2 max-h-64 overflow-y-auto">
-        {todaySessions.length === 0 ? (
-          <p className="text-center opacity-50 py-8">Start your first session today!</p>
-        ) : (
-          todaySessions.slice().reverse().map((session, index) => (
-            <div 
-              key={index}
-              className={`flex justify-between items-center p-3 rounded-lg ${
-                darkMode ? 'bg-gray-700' : 'bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`w-3 h-3 rounded-full ${
-                  session.type === 'work' ? 'bg-red-500' : 'bg-green-500'
-                }`} />
-                <span className="capitalize">{session.type}</span>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold">{session.duration}min</div>
-                <div className="text-xs opacity-60">{session.timestamp}</div>
-              </div>
+        {todaySessions.slice().reverse().map((session, index) => (
+          <div 
+            key={index}
+            className={`flex justify-between items-center p-3 rounded-lg ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`w-3 h-3 rounded-full ${
+                session.type === 'work' ? 'bg-red-500' : 'bg-green-500'
+              }`} />
+              <span className="capitalize">{session.type}</span>
             </div>
-          ))
-        )}
+            <div className="text-right">
+              <div className="font-semibold">{session.duration}min</div>
+              <div className="text-xs opacity-60">{session.timestamp}</div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

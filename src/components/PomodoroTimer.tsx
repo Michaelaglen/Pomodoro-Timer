@@ -134,7 +134,7 @@ export default function PomodoroTimer() {
         ctx.resume();
       }
       
-      // Create a sequence of three beeps
+      // Create a sequence of three calming dings
       for (let i = 0; i < 3; i++) {
         setTimeout(() => {
           const oscillator = ctx.createOscillator();
@@ -143,6 +143,7 @@ export default function PomodoroTimer() {
           oscillator.connect(gainNode);
           gainNode.connect(ctx.destination);
           
+          // Create a calming bell tone
           oscillator.frequency.setValueAtTime(800, ctx.currentTime);
           oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.3);
           
@@ -279,6 +280,44 @@ export default function PomodoroTimer() {
   const cardClasses = darkMode 
     ? 'bg-gray-800 border-gray-700' 
     : 'bg-white border-gray-200';
+
+  const exportData = () => {
+    // Create CSV content
+    const csvHeaders = 'Date,Time,Type,Duration (minutes)\n';
+    const csvContent = sessionHistory
+      .map(session => `${session.date},${session.timestamp},${session.type},${session.duration}`)
+      .join('\n');
+    
+    const csvData = csvHeaders + csvContent;
+    const dataBlob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pomodoro-sessions-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Data Exported",
+      description: "Your session data has been downloaded as a CSV file.",
+    });
+  };
+
+  const clearAllData = () => {
+    if (confirm('Are you sure you want to clear all session data? This cannot be undone.')) {
+      setSessionHistory([]);
+      localStorage.removeItem('pomodoroHistory');
+      console.log('All data cleared');
+      
+      toast({
+        title: "Data Cleared",
+        description: "All session data has been permanently deleted.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className={`flex items-center justify-center min-h-screen p-4 transition-all duration-300 ${themeClasses}`}>
@@ -499,25 +538,31 @@ export default function PomodoroTimer() {
           <StatsView 
             sessionHistory={sessionHistory} 
             darkMode={darkMode}
-            onClearData={() => {
-              if (confirm('Are you sure you want to clear all session data? This cannot be undone.')) {
-                setSessionHistory([]);
-                localStorage.removeItem('pomodoroHistory');
-                console.log('All data cleared');
-                
-                toast({
-                  title: "Data Cleared",
-                  description: "All session data has been permanently deleted.",
-                  variant: "destructive",
-                });
-              }
-            }}
+            onClearData={clearAllData}
           />
         )}
 
         {/* Daily View */}
         {currentView === 'daily' && (
           <DailyView sessionHistory={sessionHistory} darkMode={darkMode} />
+        )}
+
+        {/* Export and Clear buttons at bottom */}
+        {(currentView === 'stats' || currentView === 'daily') && (
+          <div className="flex space-x-2 mt-6 pt-4 border-t border-opacity-20">
+            <button
+              onClick={exportData}
+              className="flex items-center space-x-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex-1"
+            >
+              <span>Export CSV</span>
+            </button>
+            <button
+              onClick={clearAllData}
+              className="flex items-center space-x-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm flex-1"
+            >
+              <span>Clear Data</span>
+            </button>
+          </div>
         )}
 
         {/* Buy Me a Coffee Button */}
