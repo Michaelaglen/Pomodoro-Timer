@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,7 +43,7 @@ export function useSettings() {
     setShowSettings(false);
     toast({
       title: "Settings Saved",
-      duration: 2000,
+      duration: 1500,
     });
   };
 

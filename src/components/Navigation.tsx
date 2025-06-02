@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Settings, Moon, Sun } from 'lucide-react';
 
@@ -22,7 +21,7 @@ export default function Navigation({
       <div className="flex space-x-1">
         <button
           onClick={() => setCurrentView('timer')}
-          className={`px-3 py-1 rounded-full text-sm transition-colors ${
+          className={`px-4 py-2 rounded-full text-sm transition-colors ${
             currentView === 'timer' 
               ? 'bg-red-500 text-white' 
               : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
@@ -32,13 +31,23 @@ export default function Navigation({
         </button>
         <button
           onClick={() => setCurrentView('stats')}
-          className={`px-3 py-1 rounded-full text-sm transition-colors ${
+          className={`px-4 py-2 rounded-full text-sm transition-colors ${
             currentView === 'stats' 
               ? 'bg-red-500 text-white' 
               : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
           }`}
         >
           Stats
+        </button>
+        <button
+          onClick={() => setCurrentView('daily')}
+          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+            currentView === 'daily' 
+              ? 'bg-red-500 text-white' 
+              : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+          }`}
+        >
+          Daily
         </button>
       </div>
       

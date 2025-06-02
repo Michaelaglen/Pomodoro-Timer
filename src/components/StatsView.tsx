@@ -76,68 +76,70 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
   }, [sessionsByDate]);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Today's Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Today</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <TooltipProvider>
-            <UITooltip>
-              <TooltipTrigger asChild>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Sessions</span>
-                  <span className="text-2xl font-bold">{todayStats.completedSessions}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>One session = Work time + Break time</p>
-              </TooltipContent>
-            </UITooltip>
-          </TooltipProvider>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Work Minutes</span>
-            <span className="text-2xl font-bold">{todayStats.workMinutes}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Break Minutes</span>
-            <span className="text-2xl font-bold">{todayStats.breakMinutes}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Total Minutes</span>
-            <span className="text-2xl font-bold">{todayStats.workMinutes + todayStats.breakMinutes}</span>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Today's Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Today</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Sessions</span>
+                    <span className="text-2xl font-bold">{todayStats.completedSessions}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>One session = Work time + Break time</p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Work Minutes</span>
+              <span className="text-2xl font-bold">{todayStats.workMinutes}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Break Minutes</span>
+              <span className="text-2xl font-bold">{todayStats.breakMinutes}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total Minutes</span>
+              <span className="text-2xl font-bold">{todayStats.workMinutes + todayStats.breakMinutes}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Weekly Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">This Week</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Total Sessions</span>
-            <span className="text-2xl font-bold">{weeklyStats.completedSessions}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Work Minutes</span>
-            <span className="text-2xl font-bold">{weeklyStats.workMinutes}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Break Minutes</span>
-            <span className="text-2xl font-bold">{weeklyStats.breakMinutes}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Current Streak</span>
-            <span className="text-2xl font-bold">{currentStreak} days</span>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Weekly Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">This Week</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total Sessions</span>
+              <span className="text-2xl font-bold">{weeklyStats.completedSessions}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Work Minutes</span>
+              <span className="text-2xl font-bold">{weeklyStats.workMinutes}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Break Minutes</span>
+              <span className="text-2xl font-bold">{weeklyStats.breakMinutes}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Current Streak</span>
+              <span className="text-2xl font-bold">{currentStreak} days</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Activity Chart */}
-      <Card className="md:col-span-2">
+      <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Activity</CardTitle>
         </CardHeader>
@@ -186,18 +188,18 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
       </Card>
 
       {/* Action Buttons */}
-      <div className="md:col-span-2 flex gap-4">
+      <div className="flex gap-4">
         <button
           onClick={onExportData}
-          className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md transition-colors"
+          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 py-2 rounded-md transition-colors"
         >
           Export Data
         </button>
         <button
           onClick={onClearData}
-          className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 rounded-md transition-colors"
+          className="flex-1 bg-red-500 hover:bg-red-600 text-white h-10 px-4 py-2 rounded-md transition-colors"
         >
-          Reset Data
+          Clear All
         </button>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import StatsView from './StatsView';
 import TimerDisplay from './TimerDisplay';
@@ -7,6 +6,7 @@ import TodayStats from './TodayStats';
 import SettingsPanel from './SettingsPanel';
 import Navigation from './Navigation';
 import BuyMeCoffeeButton from './BuyMeCoffeeButton';
+import DailyView from './DailyView';
 import { useTimerLogic } from '../hooks/useTimerLogic';
 import { useSettings } from '../hooks/useSettings';
 
@@ -113,8 +113,7 @@ export default function PomodoroTimer() {
 
   return (
     <div className={`flex items-center justify-center min-h-screen p-4 transition-all duration-300 ${themeClasses}`}>
-      <div className={`rounded-3xl shadow-2xl p-6 w-full max-w-md text-center relative border transition-all duration-300 ${cardClasses}`}>
-        
+      <div className={`rounded-3xl shadow-2xl p-6 w-full max-w-[800px] text-center relative border transition-all duration-300 ${cardClasses}`}>
         <Navigation 
           currentView={currentView}
           setCurrentView={setCurrentView}
@@ -139,39 +138,59 @@ export default function PomodoroTimer() {
           />
         )}
 
-        {currentView === 'timer' && (
-          <>
-            <TimerDisplay
-              minutes={minutes}
-              seconds={seconds}
-              isBreak={isBreak}
-              workDuration={workDuration}
-              breakDuration={breakDuration}
-              progress={progress}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            {currentView === 'timer' && (
+              <>
+                <TimerDisplay
+                  minutes={minutes}
+                  seconds={seconds}
+                  isBreak={isBreak}
+                  workDuration={workDuration}
+                  breakDuration={breakDuration}
+                  progress={progress}
+                />
 
-            <TimerControls
-              isActive={isActive}
-              onToggleTimer={toggleTimer}
-              onResetTimer={resetTimer}
-              darkMode={darkMode}
-            />
+                <TimerControls
+                  isActive={isActive}
+                  onToggleTimer={toggleTimer}
+                  onResetTimer={resetTimer}
+                  darkMode={darkMode}
+                />
 
-            <TodayStats
-              completedSessions={completedSessions}
-              totalWorkMinutes={totalWorkMinutes}
-            />
-          </>
-        )}
+                <TodayStats
+                  completedSessions={completedSessions}
+                  totalWorkMinutes={totalWorkMinutes}
+                />
+              </>
+            )}
 
-        {currentView === 'stats' && (
-          <StatsView 
-            sessionHistory={sessionHistory} 
-            darkMode={darkMode}
-            onExportData={exportData}
-            onClearData={clearAllData}
-          />
-        )}
+            {currentView === 'stats' && (
+              <StatsView 
+                sessionHistory={sessionHistory} 
+                darkMode={darkMode}
+                onExportData={exportData}
+                onClearData={clearAllData}
+              />
+            )}
+
+            {currentView === 'daily' && (
+              <DailyView
+                sessionHistory={sessionHistory}
+                darkMode={darkMode}
+              />
+            )}
+          </div>
+
+          {currentView === 'timer' && (
+            <div className="hidden md:block">
+              <DailyView
+                sessionHistory={sessionHistory}
+                darkMode={darkMode}
+              />
+            </div>
+          )}
+        </div>
 
         <BuyMeCoffeeButton darkMode={darkMode} />
       </div>

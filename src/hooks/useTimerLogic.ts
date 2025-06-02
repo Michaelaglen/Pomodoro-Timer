@@ -67,27 +67,21 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
         ctx.resume();
       }
 
-      // Japanese-style temple bell sound
-      const frequencies = [440, 880, 1760];
-      frequencies.forEach((freq, i) => {
-        setTimeout(() => {
-          const oscillator = ctx.createOscillator();
-          const gainNode = ctx.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(ctx.destination);
-          
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
-          
-          gainNode.gain.setValueAtTime(0, ctx.currentTime);
-          gainNode.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.1);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
-          
-          oscillator.start(ctx.currentTime);
-          oscillator.stop(ctx.currentTime + 2);
-        }, i * 800);
-      });
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(440, ctx.currentTime);
+      
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 2);
     } catch (error) {
       console.error('Error playing notification sound:', error);
     }
@@ -109,7 +103,7 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
     toast({
       title: isBreak ? "Break Complete!" : "Work Session Complete!",
       description: `${newSession.duration} minutes ${isBreak ? 'break' : 'work'} session finished.`,
-      duration: 3000, // Show for 3 seconds
+      duration: 1500,
     });
 
     if (isBreak) {
@@ -183,7 +177,7 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
         title: "Data Cleared",
         description: "All session data has been permanently deleted.",
         variant: "destructive",
-        duration: 3000,
+        duration: 1500,
       });
     }
   };
