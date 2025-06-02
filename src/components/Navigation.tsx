@@ -30,16 +30,6 @@ export default function Navigation({
           Timer
         </button>
         <button
-          onClick={() => setCurrentView('stats')}
-          className={`px-4 py-2 rounded-full text-sm transition-colors ${
-            currentView === 'stats' 
-              ? 'bg-red-500 text-white' 
-              : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
-          }`}
-        >
-          Stats
-        </button>
-        <button
           onClick={() => setCurrentView('daily')}
           className={`px-4 py-2 rounded-full text-sm transition-colors ${
             currentView === 'daily' 
@@ -48,6 +38,16 @@ export default function Navigation({
           }`}
         >
           Daily
+        </button>
+        <button
+          onClick={() => setCurrentView('stats')}
+          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+            currentView === 'stats' 
+              ? 'bg-red-500 text-white' 
+              : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+          }`}
+        >
+          Stats
         </button>
       </div>
       

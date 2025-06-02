@@ -102,29 +102,27 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
 
     toast({
       title: isBreak ? "Break Complete!" : "Work Session Complete!",
-      description: `${newSession.duration} minutes ${isBreak ? 'break' : 'work'} session finished.`,
+      description: `${newSession.duration} min ${isBreak ? 'break' : 'work'} session finished.`,
       duration: 1500,
     });
 
-    if (isBreak) {
+    if (isBreak || !autoBreak) {
       setIsBreak(false);
       setMinutes(workDuration);
       setSeconds(0);
-      if (autoStart) {
+      if (autoStart && isBreak) {
         setTimeout(() => setIsActive(true), 1000);
+      } else {
+        setIsActive(false);
       }
     } else {
-      if (autoBreak) {
-        setIsBreak(true);
-        setMinutes(breakDuration);
-        setSeconds(0);
-        if (autoStart) {
-          setTimeout(() => setIsActive(true), 1000);
-        }
+      setIsBreak(true);
+      setMinutes(breakDuration);
+      setSeconds(0);
+      if (autoStart) {
+        setTimeout(() => setIsActive(true), 1000);
       } else {
-        setIsBreak(false);
-        setMinutes(workDuration);
-        setSeconds(0);
+        setIsActive(false);
       }
     }
   };
