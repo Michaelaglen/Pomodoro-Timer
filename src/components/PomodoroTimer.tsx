@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import StatsView from './StatsView';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
-import TodayStats from './TodayStats';
 import SettingsPanel from './SettingsPanel';
 import Navigation from './Navigation';
 import BuyMeCoffeeButton from './BuyMeCoffeeButton';
@@ -51,58 +50,6 @@ export default function PomodoroTimer() {
   const currentDuration = isBreak ? breakDuration : workDuration;
   const progress = ((currentDuration * 60 - (minutes * 60 + seconds)) / (currentDuration * 60)) * 100;
 
-  // Get today's sessions and calculate completed pomodoro cycles
-  const today = new Date().toDateString();
-  const todaySessions = sessionHistory.filter(s => s.date === today);
-  const workSessions = todaySessions.filter(s => s.type === 'work');
-  const breakSessions = todaySessions.filter(s => s.type === 'break');
-  const completedSessions = Math.min(workSessions.length, breakSessions.length);
-  const totalWorkMinutes = workSessions.reduce((sum, s) => sum + s.duration, 0);
-
-  const exportData = () => {
-    const sessionsByDate = sessionHistory.reduce((acc, session) => {
-      if (!acc[session.date]) {
-        acc[session.date] = { work: [], break: [] };
-      }
-      acc[session.date][session.type].push(session);
-      return acc;
-    }, {} as Record<string, { work: any[], break: any[] }>);
-
-    const csvHeaders = 'Day,Date,Sessions,Work Min,Break Min\n';
-    const csvRows = Object.entries(sessionsByDate).map(([date, sessions]) => {
-      const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
-      const sessionCount = Math.min(sessions.work.length, sessions.break.length);
-      const workMin = sessions.work.reduce((sum, s) => sum + s.duration, 0);
-      const breakMin = sessions.break.reduce((sum, s) => sum + s.duration, 0);
-      return `${dayName},${date},${sessionCount},${workMin},${breakMin}`;
-    });
-
-    const totalSessionCount = Object.values(sessionsByDate).reduce((sum, sessions) => 
-      sum + Math.min(sessions.work.length, sessions.break.length), 0
-    );
-    const totalWorkMin = Object.values(sessionsByDate).reduce((sum, sessions) => 
-      sum + sessions.work.reduce((s, session) => s + session.duration, 0), 0
-    );
-    const totalBreakMin = Object.values(sessionsByDate).reduce((sum, sessions) => 
-      sum + sessions.break.reduce((s, session) => s + session.duration, 0), 0
-    );
-
-    csvRows.push('');
-    csvRows.push('Weekly Summary,Total,Sessions,Work Min,Break Min');
-    csvRows.push(`Week Total,,${totalSessionCount},${totalWorkMin},${totalBreakMin}`);
-
-    const csvContent = csvHeaders + csvRows.join('\n');
-    const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `pomodoro-sessions-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const themeClasses = darkMode 
     ? 'bg-gray-900 text-white' 
     : 'bg-gradient-to-br from-red-50 to-orange-50 text-gray-800';
@@ -138,57 +85,51 @@ export default function PomodoroTimer() {
           />
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            {currentView === 'timer' && (
-              <>
-                <TimerDisplay
-                  minutes={minutes}
-                  seconds={seconds}
-                  isBreak={isBreak}
-                  workDuration={workDuration}
-                  breakDuration={breakDuration}
-                  progress={progress}
-                />
-
-                <TimerControls
-                  isActive={isActive}
-                  onToggleTimer={toggleTimer}
-                  onResetTimer={resetTimer}
-                  darkMode={darkMode}
-                />
-
-                <TodayStats
-                  completedSessions={completedSessions}
-                  totalWorkMinutes={totalWorkMinutes}
-                />
-              </>
-            )}
-
-            {currentView === 'stats' && (
-              <StatsView 
-                sessionHistory={sessionHistory} 
-                darkMode={darkMode}
-                onExportData={exportData}
-                onClearData={clearAllData}
-              />
-            )}
-
-            {currentView === 'daily' && (
-              <DailyView
-                sessionHistory={sessionHistory}
-                darkMode={darkMode}
-              />
-            )}
-          </div>
-
+        <div className="grid grid-cols-1 gap-6">
           {currentView === 'timer' && (
-            <div className="hidden md:block">
-              <DailyView
-                sessionHistory={sessionHistory}
+            <>
+              <TimerDisplay
+                minutes={minutes}
+                seconds={seconds}
+                isBreak={isBreak}
+                workDuration={workDuration}
+                breakDuration={breakDuration}
+                progress={progress}
+              />
+
+              <TimerControls
+                isActive={isActive}
+                onToggleTimer={toggleTimer}
+                onResetTimer={resetTimer}
                 darkMode={darkMode}
               />
-            </div>
+            </>
+          )}
+
+          {currentView === 'stats' && (
+            <StatsView 
+              sessionHistory={sessionHistory} 
+              darkMode={darkMode}
+              onExportData={() => {
+                const element = document.createElement("a");
+                const file = new Blob([JSON.stringify(sessionHistory, null, 2)], {
+                  type: "application/json",
+                });
+                element.href = URL.createObjectURL(file);
+                element.download = "pomodoro-data.json";
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+              }}
+              onClearData={clearAllData}
+            />
+          )}
+
+          {currentView === 'daily' && (
+            <DailyView
+              sessionHistory={sessionHistory}
+              darkMode={darkMode}
+            />
           )}
         </div>
 

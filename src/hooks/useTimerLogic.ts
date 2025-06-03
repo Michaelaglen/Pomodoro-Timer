@@ -106,23 +106,35 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
       duration: 1500,
     });
 
-    if (isBreak || !autoBreak) {
-      setIsBreak(false);
-      setMinutes(workDuration);
-      setSeconds(0);
-      if (autoStart && isBreak) {
-        setTimeout(() => setIsActive(true), 1000);
+    if (!autoBreak) {
+      setIsActive(false);
+      if (isBreak) {
+        setIsBreak(false);
+        setMinutes(workDuration);
       } else {
-        setIsActive(false);
+        setIsBreak(true);
+        setMinutes(breakDuration);
       }
-    } else {
-      setIsBreak(true);
-      setMinutes(breakDuration);
       setSeconds(0);
-      if (autoStart) {
-        setTimeout(() => setIsActive(true), 1000);
+    } else {
+      if (isBreak) {
+        setIsBreak(false);
+        setMinutes(workDuration);
+        setSeconds(0);
+        if (autoStart) {
+          setTimeout(() => setIsActive(true), 1000);
+        } else {
+          setIsActive(false);
+        }
       } else {
-        setIsActive(false);
+        setIsBreak(true);
+        setMinutes(breakDuration);
+        setSeconds(0);
+        if (autoStart) {
+          setTimeout(() => setIsActive(true), 1000);
+        } else {
+          setIsActive(false);
+        }
       }
     }
   };

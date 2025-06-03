@@ -45,14 +45,14 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
   return (
     <div className={`space-y-8 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
       <div className="bg-opacity-10 rounded-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">This Week</h2>
+        <h2 className="text-2xl font-bold mb-4">Weekly Progress</h2>
         <div className="grid grid-cols-2 gap-8 mb-8">
           <div>
-            <div className="text-3xl font-bold">{weeklyStats.workMinutes}</div>
+            <div className="text-3xl font-bold text-red-500">{weeklyStats.workMinutes}</div>
             <div className="text-sm opacity-70">Total Minutes</div>
           </div>
           <div>
-            <div className="text-3xl font-bold">{weeklyStats.completedSessions}</div>
+            <div className="text-3xl font-bold text-blue-500">{weeklyStats.completedSessions}</div>
             <div className="text-sm opacity-70">Total Sessions</div>
           </div>
         </div>
@@ -93,18 +93,18 @@ export default function StatsView({ sessionHistory, darkMode, onExportData, onCl
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 max-w-sm mx-auto">
         <button
           onClick={onExportData}
-          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 py-2 rounded-md transition-colors"
+          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 py-2 rounded-md transition-colors text-sm"
         >
           Export Data
         </button>
         <button
           onClick={onClearData}
-          className="flex-1 bg-red-500 hover:bg-red-600 text-white h-10 px-4 py-2 rounded-md transition-colors"
+          className="flex-1 bg-red-500 hover:bg-red-600 text-white h-10 px-4 py-2 rounded-md transition-colors text-sm"
         >
-          Clear All
+          Reset Data
         </button>
       </div>
     </div>

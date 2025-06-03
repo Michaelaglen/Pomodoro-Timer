@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Save } from 'lucide-react';
 
@@ -34,7 +33,7 @@ export default function SettingsPanel({
     : 'bg-white border-gray-200';
 
   return (
-    <div className={`absolute top-16 left-0 right-0 border rounded-2xl shadow-lg p-4 z-20 mx-2 ${cardClasses}`}>
+    <div className={`absolute top-16 left-1/2 transform -translate-x-1/2 border rounded-2xl shadow-lg p-4 z-20 w-full max-w-md ${cardClasses}`}>
       <h3 className="font-semibold mb-4">Settings</h3>
       
       <div className="space-y-4">
@@ -89,7 +88,7 @@ export default function SettingsPanel({
         <div className="flex space-x-2 pt-4">
           <button
             onClick={onSaveSettings}
-            className="flex items-center space-x-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex-1"
+            className="flex items-center justify-center space-x-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex-1"
           >
             <Save size={16} />
             <span>Save</span>
