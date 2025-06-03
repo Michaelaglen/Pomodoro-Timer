@@ -103,7 +103,7 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
     toast({
       title: isBreak ? "Break Complete!" : "Work Session Complete!",
       description: `${newSession.duration} min ${isBreak ? 'break' : 'work'} session finished.`,
-      duration: 1500,
+      duration: 750,
     });
 
     if (!autoBreak) {
@@ -187,7 +187,7 @@ export function useTimerLogic({ workDuration, breakDuration, autoBreak, autoStar
         title: "Data Cleared",
         description: "All session data has been permanently deleted.",
         variant: "destructive",
-        duration: 1500,
+        duration: 750,
       });
     }
   };
