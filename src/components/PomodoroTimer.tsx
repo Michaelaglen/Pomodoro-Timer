@@ -40,12 +40,74 @@ export default function PomodoroTimer() {
     setSessionHistory
   } = useTimerLogic({ workDuration, breakDuration, autoBreak, autoStart });
 
-  // Request notification permission
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+  // Export functions
+  const exportToCSV = (data: any[], filename: string) => {
+    const processSessionData = (sessions: any[]) => {
+      const groupedByDate = sessions.reduce((acc, session) => {
+        const date = session.date;
+        if (!acc[date]) {
+          acc[date] = {
+            workSessions: [],
+            breakSessions: [],
+            workMinutes: 0,
+            breakMinutes: 0,
+            times: []
+          };
+        }
+        
+        if (session.type === 'work') {
+          acc[date].workSessions.push(session);
+          acc[date].workMinutes += session.duration;
+        } else {
+          acc[date].breakSessions.push(session);
+          acc[date].breakMinutes += session.duration;
+        }
+        
+        acc[date].times.push(session.timestamp);
+        return acc;
+      }, {});
+
+      const csvRows = [
+        ['Date', 'Day', 'Work_Sessions', 'Break_Sessions', 'Total_Work_Minutes', 'Total_Break_Minutes', 'Session_Times']
+      ];
+
+      Object.entries(groupedByDate).forEach(([date, data]: [string, any]) => {
+        const day = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+        csvRows.push([
+          date,
+          day,
+          data.workSessions.length,
+          data.breakSessions.length,
+          data.workMinutes,
+          data.breakMinutes,
+          `"${data.times.join(',')}"`
+        ]);
+      });
+
+      return csvRows.map(row => row.join(',')).join('\n');
+    };
+
+    const csvContent = processSessionData(data);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportAllData = () => {
+    exportToCSV(sessionHistory, 'pomodoro-all-sessions.csv');
+  };
+
+  const handleExportTodayData = () => {
+    const today = new Date().toDateString();
+    const todaysSessions = sessionHistory.filter(session => session.date === today);
+    exportToCSV(todaysSessions, 'pomodoro-today-sessions.csv');
+  };
 
   const currentDuration = isBreak ? breakDuration : workDuration;
   const progress = ((currentDuration * 60 - (minutes * 60 + seconds)) / (currentDuration * 60)) * 100;
@@ -82,6 +144,9 @@ export default function PomodoroTimer() {
             setAutoStart={setAutoStart}
             onSaveSettings={saveSettings}
             onClose={() => setShowSettings(false)}
+            onExportAllData={handleExportAllData}
+            onExportTodayData={handleExportTodayData}
+            onClearAllData={clearAllData}
           />
         )}
 
@@ -103,6 +168,13 @@ export default function PomodoroTimer() {
                 onResetTimer={resetTimer}
                 darkMode={darkMode}
               />
+
+              <div className="mt-8 text-center">
+                <h3 className="text-lg mb-2">Today's Sessions</h3>
+                <span className="text-4xl font-bold">
+                  {sessionHistory.filter(s => s.date === new Date().toDateString()).length}
+                </span>
+              </div>
             </>
           )}
 
@@ -110,18 +182,6 @@ export default function PomodoroTimer() {
             <StatsView 
               sessionHistory={sessionHistory} 
               darkMode={darkMode}
-              onExportData={() => {
-                const element = document.createElement("a");
-                const file = new Blob([JSON.stringify(sessionHistory, null, 2)], {
-                  type: "application/json",
-                });
-                element.href = URL.createObjectURL(file);
-                element.download = "pomodoro-data.json";
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
-              }}
-              onClearData={clearAllData}
             />
           )}
 
